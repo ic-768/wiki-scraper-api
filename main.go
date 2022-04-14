@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -13,6 +14,27 @@ type WikiArticle struct {
 	Body  string `json:"Body"`
 }
 
+func getPort() string {
+	// local env variable
+	port, portInEnv := os.LookupEnv("PORT")
+
+	// default value
+	if !portInEnv {
+		// CLI argument
+		usingCustomPort := len(os.Args[1:]) > 0
+		if usingCustomPort {
+			port = ":" + os.Args[1]
+		} else {
+			// default port
+			port = ":10000"
+		}
+	} else {
+		port = ":" + port
+	}
+	fmt.Println("using port", port)
+	return port
+}
+
 func handleRequests() {
 	myRouter := mux.NewRouter().StrictSlash(true)
 
@@ -22,16 +44,7 @@ func handleRequests() {
 	myRouter.HandleFunc("/article/{article}", GetArticle)
 	// returns a random article
 	myRouter.HandleFunc("/random", GetRandomArticle)
-
-	// port can be defined through 1st command-line argument
-	var port string
-	usingCustomPort := len(os.Args[1:]) > 0
-	if usingCustomPort {
-		port = ":" + os.Args[1]
-	} else {
-		port = ":10000"
-	}
-
+	port := getPort()
 	log.Fatal(http.ListenAndServe(port, myRouter))
 }
 
