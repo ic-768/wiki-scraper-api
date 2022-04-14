@@ -2,14 +2,17 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gocolly/colly"
+	"github.com/gorilla/mux"
 )
 
-// return a random article's title and its main content
-func GetRandomArticle(w http.ResponseWriter, r *http.Request) {
+func GetArticle(w http.ResponseWriter, r *http.Request) {
 	var article WikiArticle
+	query := mux.Vars(r)["article"]
+	queryUrl := fmt.Sprintf("https://en.wikipedia.org/wiki/%s", query)
 	c := colly.NewCollector()
 
 	c.OnHTML("h1.firstHeading", func(h *colly.HTMLElement) {
@@ -20,7 +23,7 @@ func GetRandomArticle(w http.ResponseWriter, r *http.Request) {
 		article.Body += h.Text
 	})
 
-	c.Visit("https://en.wikipedia.org/wiki/Special:Random")
+	c.Visit(queryUrl)
 
 	json.NewEncoder(w).Encode(article)
 }

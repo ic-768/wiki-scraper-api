@@ -6,34 +6,26 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"regexp"
 	"time"
 
 	"github.com/gorilla/mux"
 )
 
 type SearchResult struct {
-	Query   string
 	Results []string
-	Links   []string
 }
 
 func (s *SearchResult) UnmarshalJSON(in []byte) error {
-	cells := [4]json.RawMessage{}
+	cells := [2]json.RawMessage{}
 	if err := json.Unmarshal(in, &cells); err != nil {
 		return err
 	}
-	if err := json.Unmarshal(cells[0], &s.Query); err != nil {
-		return err
-	}
-	if err := json.Unmarshal(cells[1], &s.Results); err != nil {
-		return err
-	}
-	return json.Unmarshal(cells[3], &s.Links)
-
+	return json.Unmarshal(cells[1], &s.Results)
 }
 
-// Performs a simple wikipedia search and returns the json response
-func searchForArticle(w http.ResponseWriter, r *http.Request) {
+// Performs a simple wikipedia search and returns a list of matching article titles
+func SearchForArticle(w http.ResponseWriter, r *http.Request) {
 	query := mux.Vars(r)["search"]
 	queryUrl := fmt.Sprintf("https://en.wikipedia.org/w/api.php?action=opensearch&format=json&formatversion=2&search=%s&namespace=0&limit=30", query)
 	APIClient := http.Client{Timeout: time.Second * 20}
@@ -63,5 +55,12 @@ func searchForArticle(w http.ResponseWriter, r *http.Request) {
 		log.Fatal(jsonErr)
 	}
 
-	json.NewEncoder(w).Encode(APIResult)
+	re := regexp.MustCompile(" ")
+	// Replace all whitespace with underscores for consistency with the actual URLs of the articles
+	for i, entry := range APIResult.Results {
+		replaced := re.ReplaceAllString(entry, "_")
+		APIResult.Results[i] = replaced
+	}
+
+	json.NewEncoder(w).Encode(APIResult.Results)
 }
