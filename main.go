@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/gorilla/mux"
 )
@@ -21,7 +22,17 @@ func handleRequests() {
 	myRouter.HandleFunc("/article/{article}", GetArticle)
 	// returns a random article
 	myRouter.HandleFunc("/random", GetRandomArticle)
-	log.Fatal(http.ListenAndServe(":10000", myRouter))
+
+	// port can be defined through 1st command-line argument
+	var port string
+	usingCustomPort := len(os.Args[1:]) > 0
+	if usingCustomPort {
+		port = ":" + os.Args[1]
+	} else {
+		port = ":10000"
+	}
+
+	log.Fatal(http.ListenAndServe(port, myRouter))
 }
 
 func main() {
